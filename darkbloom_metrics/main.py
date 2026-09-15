@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import os
 import signal
+import threading
 
 from .client import CAPACITY_URL, STATS_URL, DarkbloomClient
 from .influx import InfluxSettings, Writer
@@ -37,7 +38,7 @@ def main() -> None:
         password=os.getenv("INFLUX_PASSWORD", "homeassistant"),
     )
 
-    stop = signal.Event()
+    stop = threading.Event()
 
     def _sig(_a, _b):
         log.info("shutting down")
