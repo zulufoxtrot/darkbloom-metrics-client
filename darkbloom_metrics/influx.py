@@ -45,13 +45,15 @@ class Writer:
         self._write_api.write(bucket=self._bucket, record=point, write_precision=WritePrecision.NS)
 
     @staticmethod
-    def _numeric_point(sensor: SensorDef, entity_id: str, value: float) -> Point:
+    def _numeric_point(sensor: SensorDef, entity_id: str, value: float, display_name: str | None = None) -> Point:
         p = (
             Point(sensor.unit)
             .tag("domain", "sensor")
             .tag("entity_id", entity_id.removeprefix("sensor."))
             .field("value", float(value))
         )
+        if display_name:
+            p = p.field("friendly_name_str", display_name)
         if sensor.state_class:
             p = p.field("state_class_str", sensor.state_class)
         if sensor.icon:
@@ -59,13 +61,15 @@ class Writer:
         return p
 
     @staticmethod
-    def _state_point(entity_id: str, state: Any, icon: str | None = None) -> Point:
+    def _state_point(entity_id: str, state: Any, icon: str | None = None, display_name: str | None = None) -> Point:
         p = (
             Point(entity_id)
             .tag("domain", entity_id.split(".")[0])
             .tag("entity_id", entity_id.split(".", 1)[1])
             .field("state", str(state))
         )
+        if display_name:
+            p = p.field("friendly_name_str", display_name)
         if icon:
             p = p.field("icon_str", icon)
         return p
@@ -82,15 +86,15 @@ class Writer:
                 value = sensor.extract(model)
                 if value is None:
                     continue
-                points.append(self._numeric_point(sensor, _entity_for_name(f"{display} {sensor.name}"), value))
+                points.append(self._numeric_point(sensor, _entity_for_name(f"{display} {sensor.name}"), value, f"{display} {sensor.name}"))
             for sensor in MODEL_BINARY_SENSORS:
                 value = sensor.extract(model)
                 if value is None:
                     continue
-                points.append(self._state_point(_entity_for_name(f"binary_sensor {display} {sensor.name}", prefix=False), "on" if value else "off", sensor.icon))
+                points.append(self._state_point(_entity_for_name(f"binary_sensor {display} {sensor.name}", prefix=False), "on" if value else "off", sensor.icon, f"{display} {sensor.name}"))
             qf = MODEL_QUEUE_FULLNESS.extract(model)
             if qf is not None and model.get("queue_limit"):
-                points.append(self._numeric_point(MODEL_QUEUE_FULLNESS, _entity_for_name(f"{display} Queue Fullness"), qf))
+                points.append(self._numeric_point(MODEL_QUEUE_FULLNESS, _entity_for_name(f"{display} Queue Fullness"), qf, f"{display} Queue Fullness"))
         self._write_points(points, "capacity")
 
     def write_stats(self, stats: dict[str, Any]) -> None:
@@ -100,15 +104,15 @@ class Writer:
             if value is None:
                 continue
             if sensor.unit is None:
-                points.append(self._state_point(sensor.entity_id, value, sensor.icon))
+                points.append(self._state_point(sensor.entity_id, value, sensor.icon, sensor.name))
             else:
-                points.append(self._numeric_point(sensor, sensor.entity_id, value))
+                points.append(self._numeric_point(sensor, sensor.entity_id, value, sensor.name))
         for sensor in STATS_BINARY_SENSORS:
             value = sensor.extract(stats)
             if value is None:
                 continue
             eid = sensor.entity_id.replace("sensor.", "binary_sensor.", 1)
-            points.append(self._state_point(eid, "on" if value else "off", sensor.icon))
+            points.append(self._state_point(eid, "on" if value else "off", sensor.icon, sensor.name))
         self._write_points(points, "stats")
 
     def _write_points(self, points: list[Point], source: str) -> None:
