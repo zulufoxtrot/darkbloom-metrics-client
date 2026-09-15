@@ -10,6 +10,7 @@ from influxdb_client import InfluxDBClient, Point, WritePrecision
 from influxdb_client.client.write_api import SYNCHRONOUS
 
 from .entities import MODEL_BINARY_SENSORS, MODEL_QUEUE_FULLNESS, MODEL_SENSORS, STATS_BINARY_SENSORS, STATS_SENSORS, SensorDef
+from .providers import PROVIDER_BINARY_SENSORS, PROVIDER_SENSORS, PROVIDER_STATE_SENSORS, provider_label
 
 log = logging.getLogger(__name__)
 
@@ -116,6 +117,34 @@ class Writer:
             eid = sensor.entity_id.replace("sensor.", "binary_sensor.", 1)
             points.append(self._state_point(eid, "on" if value else "off", sensor.icon, sensor.name))
         self._write_points(points, "stats")
+
+    def write_providers(self, providers: list[dict[str, Any]]) -> None:
+        points: list[Point] = []
+        for p in providers:
+            label = provider_label(p)
+            for sensor in PROVIDER_SENSORS:
+                value = sensor.extract(p)
+                if value is None:
+                    continue
+                points.append(self._numeric_point(
+                    SensorDef(sensor.display(label), sensor.unit, sensor.state_class, sensor.icon, lambda *_: None),
+                    sensor.entity_id(label), value, sensor.display(label),
+                ))
+            for sensor in PROVIDER_BINARY_SENSORS:
+                value = sensor.extract(p)
+                if value is None:
+                    continue
+                points.append(self._state_point(
+                    sensor.binary_entity_id(label), "on" if value else "off", sensor.icon, sensor.display(label),
+                ))
+            for sensor in PROVIDER_STATE_SENSORS:
+                value = sensor.extract(p)
+                if value is None:
+                    continue
+                points.append(self._state_point(
+                    sensor.entity_id(label).replace("sensor.", "sensor.", 1), value, sensor.icon, sensor.display(label),
+                ))
+        self._write_points(points, "providers")
 
     def _write_points(self, points: list[Point], source: str) -> None:
         if not points:
