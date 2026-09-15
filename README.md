@@ -27,6 +27,11 @@ Models are **auto-discovered** from the capacity endpoint; no hardcoded model li
 | `DARKBLOOM_CAPACITY_INTERVAL` | `10` |
 | `DARKBLOOM_STATS_INTERVAL` | `300` |
 | `LOG_LEVEL` | `INFO` |
+| `PRIVY_ACCESS_TOKEN` | *(empty)* — enables the provider metrics (reputation/concurrency) |
+| `PRIVY_REFRESH_TOKEN` | *(empty)* — long-lived Privy refresh token; keeps provider metrics alive past access-token expiry |
+| `DARKBLOOM_PROVIDERS_INTERVAL` | `60` |
+
+Provider metrics come from `console.darkbloom.dev/api/me/providers`, which requires an interactive Privy session token (API keys rejected). Extract the access token (and ideally the Privy refresh token) from your browser's devtools while logged into the console; the client auto-refreshes when a refresh token is set.
 
 ## Run
 
