@@ -82,19 +82,21 @@ class Writer:
                 log.warning("model %s missing token budget fields; skipping", mid)
                 continue
             display = display_names.get(mid, mid)
+            from .naming import model_friendly_name
+            label_base = f"Darkbloom {model_friendly_name(mid)}"
             for sensor in MODEL_SENSORS:
                 value = sensor.extract(model)
                 if value is None:
                     continue
-                points.append(self._numeric_point(sensor, _entity_for_name(f"{display} {sensor.name}"), value, f"{display} {sensor.name}"))
+                points.append(self._numeric_point(sensor, _entity_for_name(f"{display} {sensor.name}"), value, f"{label_base} {sensor.name}"))
             for sensor in MODEL_BINARY_SENSORS:
                 value = sensor.extract(model)
                 if value is None:
                     continue
-                points.append(self._state_point(_entity_for_name(f"binary_sensor {display} {sensor.name}", prefix=False), "on" if value else "off", sensor.icon, f"{display} {sensor.name}"))
+                points.append(self._state_point(_entity_for_name(f"binary_sensor {display} {sensor.name}", prefix=False), "on" if value else "off", sensor.icon, f"{label_base} {sensor.name}"))
             qf = MODEL_QUEUE_FULLNESS.extract(model)
             if qf is not None and model.get("queue_limit"):
-                points.append(self._numeric_point(MODEL_QUEUE_FULLNESS, _entity_for_name(f"{display} Queue Fullness"), qf, f"{display} Queue Fullness"))
+                points.append(self._numeric_point(MODEL_QUEUE_FULLNESS, _entity_for_name(f"{display} Queue Fullness"), qf, f"{label_base} Queue Fullness"))
         self._write_points(points, "capacity")
 
     def write_stats(self, stats: dict[str, Any]) -> None:

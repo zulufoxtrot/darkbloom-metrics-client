@@ -26,6 +26,20 @@ KNOWN_MODEL_NAMES: dict[str, str] = {
 
 _FALLBACK_ACRONYMS = {"vl": "VL", "mtp": "MTP", "a3b": "A3B"}
 
+# Pretty labels for models whose auto-generated display name is ugly.
+# Used only in friendly_name_str (Influx field); entity ids/slug stay derived
+# from the display name so existing Grafana series are unaffected.
+MODEL_LABEL_OVERRIDES: dict[str, str] = {
+    "nvidia-nemotron-3.5-lightning": "Nemotron 3.5 Lightning",
+}
+
+
+def model_friendly_name(model_id: str) -> str:
+    """Pretty label for a model id (used for friendly_name_str / legends)."""
+    if model_id in MODEL_LABEL_OVERRIDES:
+        return MODEL_LABEL_OVERRIDES[model_id]
+    return model_display_name(model_id)
+
 
 def slugify(name: str) -> str:
     """Slugify a display name the way Home Assistant does.
